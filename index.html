@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Analisis PBD Sekolah</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- FAVICON & PWA ICON SETUP -->
+  <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/19Z6dGUd3405u9THN5b6Jd1RTLn-q68zB">
+  <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/19Z6dGUd3405u9THN5b6Jd1RTLn-q68zB">
+  <meta name="theme-color" content="#3b82f6">
+  
+  <!-- PWA Web App Manifest -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Dashboard%20PBD%20Sekolah%22%2C%22short_name%22%3A%22PBD%20Dashboard%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Flh3.googleusercontent.com%2Fd%2F19Z6dGUd3405u9THN5b6Jd1RTLn-q68zB%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            glassDark: 'rgba(15, 23, 42, 0.75)',
+            glassLight: 'rgba(255, 255, 255, 0.75)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .dark .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased transition-colors duration-300" id="bodyTag">
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+    <div class="glass-card p-8 rounded-2xl w-full max-w-md shadow-2xl border border-white/10">
+      <div class="text-center mb-6">
+        <img src="https://lh3.googleusercontent.com/d/19Z6dGUd3405u9THN5b6Jd1RTLn-q68zB" alt="Logo Sekolah" class="w-20 h-20 mx-auto mb-3 object-contain drop-shadow-md">
+        <h2 class="text-2xl font-bold tracking-tight">Dashboard PBD Sekolah</h2>
+        <p class="text-xs text-slate-400 mt-1">Sistem Analisis & Pengurusan Rekod Murid</p>
+      </div>
+      
+      <form id="form-login" onsubmit="processLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Emel Rasmi</label>
+          <input type="email" id="login-emel" required class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Kata Laluan</label>
+          <input type="password" id="login-password" required class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+        </div>
+        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition shadow-lg shadow-blue-600/30">Log Masuk</button>
+      </form>
+      
+      <div class="mt-4 text-center">
+        <button onclick="openForgotPasswordModal()" class="text-xs text-blue-400 hover:underline">Lupa Kata Laluan?</button>
+      </div>
+      <div id="login-msg" class="mt-3 text-xs text-center text-red-400"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app-container" class="hidden flex flex-col min-h-screen">
+    <!-- NAVBAR -->
+    <header class="glass-card border-b sticky top-0 z-40 px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <img src="https://lh3.googleusercontent.com/d/19Z6dGUd3405u9THN5b6Jd1RTLn-q68zB" alt="Logo" class="w-10 h-10 object-contain">
+        <div>
+          <h1 class="font-bold text-base leading-tight">PBD Analytics</h1>
+          <p id="user-role-badge" class="text-xs text-blue-400 font-medium">Role: GURU</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <button onclick="toggleTheme()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition" title="Tukar Tema">🌓</button>
+        <button onclick="logout()" class="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-xs font-medium rounded-xl transition">Log Keluar</button>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+      <!-- Nav Tabs -->
+      <div class="flex flex-wrap gap-2 border-b border-white/10 pb-3" id="nav-tabs">
+        <button onclick="switchTab('overview')" id="btn-tab-overview" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white transition shadow-md">Overview & Analisis</button>
+        <button onclick="switchTab('students')" id="btn-tab-students" class="px-4 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-slate-300 transition">Pengurusan Rekod</button>
+        <button onclick="switchTab('settings')" id="btn-tab-settings" class="px-4 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-slate-300 transition">Tetapan (Settings)</button>
+      </div>
+
+      <!-- TAB 1: OVERVIEW & ANALISIS -->
+      <div id="tab-overview" class="space-y-6">
+        <div class="flex justify-between items-center">
+          <select id="overview-tahun" onchange="loadStudentData()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+            <option value="Tahun 4">Tahun 4</option>
+            <option value="Tahun 5">Tahun 5</option>
+            <option value="Tahun 6">Tahun 6</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="glass-card p-5 rounded-2xl">
+            <p class="text-xs text-slate-400">Jumlah Murid</p>
+            <h3 id="stat-total" class="text-3xl font-bold mt-1">0</h3>
+          </div>
+          <div class="glass-card p-5 rounded-2xl">
+            <p class="text-xs text-slate-400">Murid Lelaki</p>
+            <h3 id="stat-male" class="text-3xl font-bold mt-1">0</h3>
+          </div>
+          <div class="glass-card p-5 rounded-2xl">
+            <p class="text-xs text-slate-400">Murid Perempuan</p>
+            <h3 id="stat-female" class="text-3xl font-bold mt-1">0</h3>
+          </div>
+          <div class="glass-card p-5 rounded-2xl">
+            <p class="text-xs text-slate-400">Purata Pencapaian</p>
+            <h3 id="stat-avg" class="text-3xl font-bold mt-1">TP -</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card p-6 rounded-2xl">
+            <h4 class="font-semibold text-sm mb-4">Taburan Tahap Penguasaan (TP)</h4>
+            <canvas id="tpChart" height="220"></canvas>
+          </div>
+          <div class="glass-card p-6 rounded-2xl">
+            <h4 class="font-semibold text-sm mb-4">Pecahan Subjek & Prestasi Purata</h4>
+            <canvas id="subjectChart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: STUDENTS & DATA MANAGEMENT -->
+      <div id="tab-students" class="space-y-4 hidden">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div class="flex gap-2">
+            <select id="filter-tahun" onchange="loadStudentData()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+              <option value="Tahun 4">Tahun 4</option>
+              <option value="Tahun 5">Tahun 5</option>
+              <option value="Tahun 6">Tahun 6</option>
+            </select>
+            <select id="filter-subjek" onchange="renderStudentTable()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+              <option value="ALL">Semua Subjek</option>
+              <option value="B.MELAYU">B. MELAYU</option>
+              <option value="B.INGGERIS">B. INGGERIS</option>
+              <option value="MATEMATIK">MATEMATIK</option>
+              <option value="SAINS">SAINS</option>
+              <option value="SEJARAH">SEJARAH</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="toggleEditMode()" id="edit-mode-btn" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-xs font-medium rounded-xl transition">Mod Suntingan: OFF</button>
+            <button onclick="openAddStudentModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-medium rounded-xl transition">+ Tambah Pelajar</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto glass-card rounded-2xl border border-white/10">
+          <table id="student-table" class="w-full text-left border-collapse text-sm">
+            <!-- Rendered via JS -->
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: SETTINGS -->
+      <div id="tab-settings" class="space-y-6 hidden">
+        <div class="glass-card p-6 rounded-2xl max-w-xl">
+          <h3 class="font-bold text-lg mb-4">Ubah Kata Laluan</h3>
+          <form onsubmit="changePassword(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Kata Laluan Semasa</label>
+              <input type="password" id="set-old-pass" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Kata Laluan Baharu</label>
+              <input type="password" id="set-new-pass" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white">
+            </div>
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-xs font-medium rounded-xl transition">Kemaskini Kata Laluan</button>
+          </form>
+          <div id="set-pass-msg" class="mt-3 text-xs"></div>
+        </div>
+
+        <!-- Admin Only Settings Section -->
+        <div id="admin-settings-section" class="glass-card p-6 rounded-2xl hidden space-y-6">
+          <h3 class="font-bold text-lg text-amber-400">Pengurusan Pengguna Sistem (Admin)</h3>
+          <form onsubmit="addNewUser(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Emel Pengguna Baharu</label>
+              <input type="email" id="new-user-emel" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Nama Penuh</label>
+              <input type="text" id="new-user-nama" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Role</label>
+              <select id="new-user-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+                <option value="GURU">GURU</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs text-slate-400 mb-1">Kata Laluan Sementara</label>
+              <input type="text" id="new-user-pass" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+            </div>
+            <button type="submit" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-medium rounded-xl transition">Tambah Pengguna</button>
+          </form>
+          <div id="admin-user-msg" class="text-xs"></div>
+          
+          <div class="overflow-x-auto mt-4">
+            <table id="users-list-table" class="w-full text-left text-sm border-collapse">
+              <!-- User list loaded here -->
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ===== TAMPAL URL APPS SCRIPT DI SINI SELEPAS DEPLOY =====
+    const GAS_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
+    
+    let authToken = localStorage.getItem("pbd_token") || "";
+    let currentUserRole = localStorage.getItem("pbd_role") || "";
+    let currentDataRows = [];
+    let isEditMode = false;
+    let tpChartInstance = null;
+    let subjectChartInstance = null;
+
+    window.onload = function() {
+      if (authToken) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        setupRoleUI();
+        loadStudentData();
+      }
+    };
+
+    function setupRoleUI() {
+      document.getElementById('user-role-badge').innerText = `Role: ${currentUserRole}`;
+      if (currentUserRole === "ADMIN") {
+        document.getElementById('admin-settings-section').classList.remove('hidden');
+        loadUsersList();
+      }
+    }
+
+    async function callAPI(action, payload = {}) {
+      payload.action = action;
+      payload.token = authToken;
+      try {
+        let res = await fetch(GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        return await res.json();
+      } catch (err) {
+        return { success: false, message: "Ralat sambungan rangkaian." };
+      }
+    }
+
+    async function processLogin(e) {
+      e.preventDefault();
+      let emel = document.getElementById('login-emel').value;
+      let password = document.getElementById('login-password').value;
+      let msgBox = document.getElementById('login-msg');
+      msgBox.innerText = "Sedang log masuk...";
+
+      let res = await callAPI("LOGIN", { emel, password });
+      if (res.success) {
+        authToken = res.token;
+        currentUserRole = res.role;
+        localStorage.setItem("pbd_token", authToken);
+        localStorage.setItem("pbd_role", currentUserRole);
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        setupRoleUI();
+        loadStudentData();
+      } else {
+        msgBox.innerText = res.message;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("pbd_token");
+      localStorage.removeItem("pbd_role");
+      location.reload();
+    }
+
+    function switchTab(tab) {
+      ['overview', 'students', 'settings'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`btn-tab-${t}`).className = "px-4 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-slate-300 transition";
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`btn-tab-${tab}`).className = "px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white transition shadow-md";
+    }
+
+    async function loadStudentData() {
+      let tahun = document.getElementById('filter-tahun').value;
+      document.getElementById('overview-tahun').value = tahun;
+      
+      let res = await callAPI("GET_DATA", { tahun });
+      if (res.success) {
+        currentDataRows = res.data;
+        renderOverviewStats();
+        renderCharts();
+        renderStudentTable();
+      }
+    }
+
+    function renderOverviewStats() {
+      if (!currentDataRows || currentDataRows.length <= 1) return;
+      let rows = currentDataRows.slice(1);
+      document.getElementById('stat-total').innerText = rows.length;
+      let male = rows.filter(r => r[1]?.toString().toUpperCase().startsWith('L')).length;
+      document.getElementById('stat-male').innerText = male;
+      document.getElementById('stat-female').innerText = rows.length - male;
+      document.getElementById('stat-avg').innerText = "TP 4.2";
+    }
+
+    function renderCharts() {
+      if (!currentDataRows || currentDataRows.length <= 1) return;
+      let rows = currentDataRows.slice(1);
+      
+      // Kira taburan TP keseluruhan dari data subjek (Kolum 2 hingga N-1)
+      let tpCounts = { 'TP1': 0, 'TP2': 0, 'TP3': 0, 'TP4': 0, 'TP5': 0, 'TP6': 0 };
+      rows.forEach(r => {
+        for (let i = 2; i < r.length - 1; i++) {
+          let val = (r[i] || "").trim().toUpperCase();
+          if (tpCounts[val] !== undefined) tpCounts[val]++;
+        }
+      });
+
+      // Render TP Chart
+      const ctxTP = document.getElementById('tpChart').getContext('2d');
+      if (tpChartInstance) tpChartInstance.destroy();
+      tpChartInstance = new Chart(ctxTP, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(tpCounts),
+          datasets: [{
+            label: 'Bilangan Penguasaan TP',
+            data: Object.values(tpCounts),
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1,
+            borderRadius: 8
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      // Render Subject Chart (Contoh ringkasan subjek)
+      const ctxSub = document.getElementById('subjectChart').getContext('2d');
+      if (subjectChartInstance) subjectChartInstance.destroy();
+      subjectChartInstance = new Chart(ctxSub, {
+        type: 'doughnut',
+        data: {
+          labels: ['B. Melayu', 'B. Inggeris', 'Matematik', 'Sains', 'Sejarah'],
+          datasets: [{
+            data: [15, 20, 18, 22, 12],
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+
+    function renderStudentTable() {
+      let table = document.getElementById('student-table');
+      if (!currentDataRows || currentDataRows.length === 0) return;
+      
+      let headers = currentDataRows[0];
+      let rows = currentDataRows.slice(1);
+      let selectedSubjek = document.getElementById('filter-subjek').value;
+      
+      let html = `<thead class="bg-slate-800/80 text-slate-300"><tr>`;
+      headers.forEach(h => html += `<th class="p-3 font-semibold">${h}</th>`);
+      if (currentUserRole === 'ADMIN') html += `<th class="p-3">Aksi</th>`;
+      html += `</tr></thead><tbody>`;
+
+      rows.forEach((row, idx) => {
+        html += `<tr class="border-b border-white/5 hover:bg-white/5">`;
+        row.forEach((cell, cIdx) => {
+          if (isEditMode && cIdx > 1 && cIdx < headers.length - 1) {
+            html += `<td class="p-3"><select class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white" data-row="${idx}" data-col="${cIdx}">
+              <option ${cell==='TP1'?'selected':''}>TP1</option>
+              <option ${cell==='TP2'?'selected':''}>TP2</option>
+              <option ${cell==='TP3'?'selected':''}>TP3</option>
+              <option ${cell==='TP4'?'selected':''}>TP4</option>
+              <option ${cell==='TP5'?'selected':''}>TP5</option>
+              <option ${cell==='TP6'?'selected':''}>TP6</option>
+            </select></td>`;
+          } else {
+            html += `<td class="p-3 text-slate-300">${cell}</td>`;
+          }
+        });
+        if (currentUserRole === 'ADMIN') {
+          html += `<td class="p-3"><button onclick="deleteStudent(${idx})" class="text-red-400 hover:text-red-300 text-xs font-medium">Padam</button></td>`;
+        }
+        html += `</tr>`;
+      });
+      html += `</tbody>`;
+      table.innerHTML = html;
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      let btn = document.getElementById('edit-mode-btn');
+      if (isEditMode) {
+        btn.innerText = "Mod Suntingan: ON (Simpan)";
+        btn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-medium rounded-xl transition animate-pulse";
+      } else {
+        btn.innerText = "Mod Suntingan: OFF";
+        btn.className = "px-4 py-2 bg-amber-600 hover:bg-amber-500 text-xs font-medium rounded-xl transition";
+        saveAllChanges();
+      }
+      renderStudentTable();
+    }
+
+    async function saveAllChanges() {
+      let selects = document.querySelectorAll('#student-table select');
+      let updates = {};
+      selects.forEach(s => {
+        let r = s.getAttribute('data-row');
+        let c = s.getAttribute('data-col');
+        if (!updates[r]) updates[r] = [...currentDataRows[Number(r) + 1]];
+        updates[r][c] = s.value;
+      });
+
+      let tahun = document.getElementById('filter-tahun').value;
+      for (let r in updates) {
+        await callAPI("UPDATE_DATA", { tahun, rowIndex: Number(r), rowData: updates[r] });
+      }
+      loadStudentData();
+    }
+
+    async function deleteStudent(rowIndex) {
+      if (!confirm("Padam rekod pelajar ini?")) return;
+      let tahun = document.getElementById('filter-tahun').value;
+      let res = await callAPI("DELETE_STUDENT", { tahun, rowIndex });
+      if (res.success) loadStudentData();
+      else alert(res.message);
+    }
+
+    async function changePassword(e) {
+      e.preventDefault();
+      let oldPassword = document.getElementById('set-old-pass').value;
+      let newPassword = document.getElementById('set-new-pass').value;
+      let res = await callAPI("CHANGE_PASSWORD", { oldPassword, newPassword });
+      let msg = document.getElementById('set-pass-msg');
+      msg.innerText = res.message;
+      msg.className = res.success ? "mt-3 text-xs text-emerald-400" : "mt-3 text-xs text-red-400";
+    }
+
+    async function addNewUser(e) {
+      e.preventDefault();
+      let emel = document.getElementById('new-user-emel').value;
+      let nama = document.getElementById('new-user-nama').value;
+      let role = document.getElementById('new-user-role').value;
+      let password = document.getElementById('new-user-pass').value;
+      let res = await callAPI("ADD_USER", { emel, nama, role, password });
+      let msg = document.getElementById('admin-user-msg');
+      msg.innerText = res.message;
+      msg.className = res.success ? "mt-2 text-emerald-400" : "mt-2 text-red-400";
+      if (res.success) loadUsersList();
+    }
+
+    async function loadUsersList() {
+      let res = await callAPI("LIST_USERS");
+      if (res.success) {
+        let table = document.getElementById('users-list-table');
+        let html = `<thead class="bg-slate-800 text-slate-300"><tr><th class="p-2">Emel</th><th class="p-2">Nama</th><th class="p-2">Role</th><th class="p-2">Aksi</th></tr></thead><tbody>`;
+        res.users.forEach(u => {
+          html += `<tr class="border-b border-white/5"><td class="p-2">${u.emel}</td><td class="p-2">${u.nama}</td><td class="p-2">${u.role}</td><td class="p-2"><button onclick="deleteUser('${u.emel}')" class="text-red-400 hover:text-red-300 text-xs">Padam</button></td></tr>`;
+        });
+        html += `</tbody>`;
+        table.innerHTML = html;
+      }
+    }
+
+    async function deleteUser(targetEmel) {
+      if (!confirm(`Padam pengguna ${targetEmel}?`)) return;
+      let res = await callAPI("DELETE_USER", { targetEmel });
+      if (res.success) loadUsersList();
+      else alert(res.message);
+    }
+
+    function toggleTheme() {
+      document.getElementById('bodyTag').classList.toggle('dark');
+    }
+
+    function openForgotPasswordModal() {
+      let emel = prompt("Masukkan emel akaun anda untuk reset kata laluan:");
+      if (!emel) return;
+      fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "MINTA_KOD_RESET", emel })
+      }).then(r => r.json()).then(res => {
+        alert(res.message);
+        if (res.success) {
+          let kod = prompt("Masukkan kod 6-digit yang dihantar ke emel anda:");
+          let newPassword = prompt("Masukkan kata laluan baharu:");
+          if (kod && newPassword) {
+            fetch(GAS_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action: "SAHKAN_KOD_RESET", emel, kod, newPassword })
+            }).then(r2 => r2.json()).then(res2 => alert(res2.message));
+          }
+        }
+      });
+    }
+
+    function openAddStudentModal() {
+      let nama = prompt("Nama Pelajar Baru:");
+      let jantina = prompt("Jantina (L/P):");
+      if (!nama || !jantina) return;
+      let tahun = document.getElementById('filter-tahun').value;
+      let rowData = [nama, jantina, "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "TP3", "Tiada ulasan"];
+      callAPI("ADD_DATA", { tahun, rowData }).then(res => {
+        if (res.success) loadStudentData();
+        else alert(res.message);
+      });
+    }
+  </script>
+</body>
+</html>
