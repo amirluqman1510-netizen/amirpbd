@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Global Biome Quest</title>
+<meta name="description" content="Mini-game Geografi Tingkatan 3 KSSM Bab 8: Tumbuh-tumbuhan Semula Jadi dan Hidupan Liar di Dunia">
+<meta name="theme-color" content="#123d2c">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f3324; --bg2:#164a34; --card:#fffdf6; --ink:#1c2b22; --muted:#5d6f63;
+  --leaf:#2f9e5b; --leaf-d:#1f7a43; --sun:#f5b83d; --sand:#f3e6c4; --sky:#4fb3d9;
+  --ok:#22a45d; --ok-bg:#e3f6ea; --bad:#d9483b; --bad-bg:#fde7e4;
+  --line:#e6dfca; --shadow:0 10px 30px rgba(0,0,0,.22);
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  min-height:100vh; overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #2c7a52 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #1d5f6e 0%, transparent 55%),
+    linear-gradient(160deg,var(--bg2),var(--bg));
+}
+h1,h2,h3,.display{font-family:'Baloo 2','Nunito',sans-serif;line-height:1.1}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input{font:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 40px;min-height:100vh;display:flex;flex-direction:column}
+
+/* Floating decor */
+.decor{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.decor span{position:absolute;font-size:28px;opacity:.16;animation:float 14s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-24px) rotate(8deg)}}
+
+.screen{display:none;position:relative;z-index:1;flex:1;flex-direction:column;animation:enter .45s ease both}
+.screen.active{display:flex}
+@keyframes enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:24px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 22px;border-radius:14px;font-weight:800;font-size:1.05rem;
+  transition:transform .15s ease, box-shadow .15s ease, background .2s;
+  min-height:50px;
+}
+.btn:active{transform:translateY(2px)}
+.btn-primary{background:var(--sun);color:#3a2a00;box-shadow:0 5px 0 #c98d1c}
+.btn-primary:hover{background:#ffc552}
+.btn-primary:active{box-shadow:0 2px 0 #c98d1c}
+.btn-green{background:var(--leaf);color:#fff;box-shadow:0 5px 0 var(--leaf-d)}
+.btn-green:hover{background:#35b066}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.3)}
+.btn-ghost:hover{background:rgba(255,255,255,.2)}
+.btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn-outline:hover{border-color:var(--leaf)}
+.btn-danger{background:#fff;color:var(--bad);border:1.5px solid #f3c2bc}
+.btn-block{width:100%}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* HOME */
+.home{justify-content:center;align-items:center;text-align:center;color:#fff;gap:22px;padding:20px 0}
+.globe{width:150px;height:150px;position:relative;animation:bob 4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.globe svg{width:100%;height:100%;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))}
+.globe .spin{animation:spin 30s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tag{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:999px;font-size:.82rem;font-weight:700;letter-spacing:.02em}
+.home h1{font-size:clamp(2.4rem,9vw,4rem);font-weight:800;letter-spacing:.01em;text-shadow:0 4px 0 rgba(0,0,0,.18)}
+.home h1 b{color:var(--sun)}
+.home p.sub{max-width:520px;opacity:.9;font-size:1.02rem}
+.home .actions{display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px}
+.stage-strip{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:560px}
+.stage-strip div{background:rgba(255,255,255,.1);border-radius:12px;padding:8px 12px;font-size:.85rem;font-weight:700}
+
+/* REGISTER */
+.center{justify-content:center}
+.form-title{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.form-title .ico{font-size:2rem}
+.form-title h2{font-size:1.7rem}
+.hint{color:var(--muted);font-size:.95rem;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:800;font-size:.9rem;margin-bottom:6px}
+.field input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:1rem;transition:border .2s, box-shadow .2s}
+.field input:focus{outline:none;border-color:var(--leaf);box-shadow:0 0 0 4px rgba(47,158,91,.15)}
+.err{color:var(--bad);font-weight:700;font-size:.88rem;min-height:1.2em;margin-bottom:8px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1}
+
+/* STAGE INTRO */
+.stage-intro{justify-content:center;text-align:center}
+.stage-intro .big{font-size:4.2rem;animation:pop .6s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.stage-intro .lvl{color:var(--leaf-d);font-weight:800;letter-spacing:.12em;font-size:.85rem;text-transform:uppercase;margin-top:6px}
+.stage-intro h2{font-size:2rem;margin:4px 0 8px}
+.stage-intro p{color:var(--muted);margin-bottom:6px}
+.stage-intro .meta{display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0 20px}
+.chip{background:var(--sand);border-radius:999px;padding:6px 12px;font-weight:800;font-size:.82rem}
+
+/* QUIZ */
+.hud{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;margin-bottom:12px;flex-wrap:wrap}
+.hud .who{font-weight:800;font-size:.95rem;opacity:.95;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}
+.hud .stats{display:flex;gap:8px}
+.pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px;font-weight:800;font-size:.88rem;display:flex;gap:6px;align-items:center}
+.progress{margin-bottom:14px}
+.progress .lbl{display:flex;justify-content:space-between;color:#fff;font-size:.85rem;font-weight:700;margin-bottom:6px;opacity:.9}
+.bar{height:14px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--leaf),var(--sun));border-radius:999px;transition:width .5s ease}
+.stage-dots{display:flex;gap:6px;margin-top:10px}
+.stage-dots span{flex:1;font-size:.72rem;font-weight:800;color:rgba(255,255,255,.55);text-align:center;padding:5px 2px;border-radius:8px;background:rgba(255,255,255,.07);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage-dots span.on{background:var(--sun);color:#3a2a00}
+.stage-dots span.done{background:rgba(47,158,91,.55);color:#fff}
+
+.qcard{position:relative}
+.qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.qnum{font-weight:800;color:var(--muted);font-size:.9rem}
+.aras{font-size:.75rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:.03em}
+.aras.R{background:#e2f3fb;color:#1b6f91}
+.aras.S{background:#fff1d1;color:#8a5a00}
+.aras.K{background:#f1e5fb;color:#6b2fa0}
+.qtext{font-size:1.18rem;font-weight:800;line-height:1.45;margin-bottom:18px}
+.opts{display:grid;gap:10px}
+.opt{
+  display:flex;align-items:center;gap:12px;text-align:left;width:100%;
+  padding:14px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;
+  font-weight:700;font-size:1rem;line-height:1.35;transition:border .15s, background .15s, transform .15s;
+  min-height:56px;
+}
+.opt:hover:not([disabled]){border-color:var(--leaf);transform:translateX(3px)}
+.opt .k{flex:0 0 34px;height:34px;border-radius:10px;background:var(--sand);display:grid;place-items:center;font-weight:800}
+.opt.correct{border-color:var(--ok);background:var(--ok-bg)}
+.opt.correct .k{background:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg);animation:shake .4s}
+.opt.wrong .k{background:var(--bad);color:#fff}
+.opt[disabled]{cursor:default}
+.opt.dim{opacity:.55}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.feedback{display:none;margin-top:16px;border-radius:14px;padding:14px 16px;animation:enter .3s ease both}
+.feedback.show{display:block}
+.feedback.ok{background:var(--ok-bg);border:1.5px solid #b6e4c8}
+.feedback.bad{background:var(--bad-bg);border:1.5px solid #f3c2bc}
+.feedback h4{font-family:'Baloo 2',sans-serif;font-size:1.2rem;margin-bottom:4px}
+.feedback.ok h4{color:var(--ok)}
+.feedback.bad h4{color:var(--bad)}
+.feedback p{font-size:.95rem;line-height:1.5}
+.next-row{margin-top:14px;display:none}
+.next-row.show{display:block}
+.kbd-hint{color:rgba(255,255,255,.6);font-size:.78rem;text-align:center;margin-top:12px}
+
+/* RESULT */
+.result-top{text-align:center;color:#fff;margin-bottom:16px}
+.result-top .medal{font-size:4.5rem;animation:pop .7s cubic-bezier(.2,1.6,.4,1) both}
+.result-top h2{font-size:2rem}
+.result-top p{opacity:.9}
+.score-ring{width:150px;height:150px;margin:0 auto 10px;position:relative}
+.score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.score-ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.score-ring .val b{font-family:'Baloo 2',sans-serif;font-size:2.4rem;display:block;line-height:1}
+.score-ring .val small{color:var(--muted);font-weight:700}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.summary div{background:var(--sand);border-radius:12px;padding:10px;text-align:center}
+.summary b{display:block;font-family:'Baloo 2',sans-serif;font-size:1.4rem}
+.summary span{font-size:.78rem;font-weight:700;color:var(--muted)}
+.stage-break{display:grid;gap:8px;margin:10px 0 16px}
+.sb{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.92rem}
+.sb .n{flex:0 0 150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb .t{flex:1;height:10px;background:#eee6cf;border-radius:999px;overflow:hidden}
+.sb .t i{display:block;height:100%;background:var(--leaf);border-radius:999px;transition:width .8s ease}
+.sb .s{flex:0 0 40px;text-align:right}
+.section-h{font-family:'Baloo 2',sans-serif;font-size:1.2rem;margin:6px 0 10px}
+details.review{border:1.5px solid var(--line);border-radius:14px;padding:4px 14px;margin-bottom:14px;background:#fff}
+details.review summary{cursor:pointer;font-weight:800;padding:10px 0;list-style:none}
+details.review summary::-webkit-details-marker{display:none}
+details.review summary::after{content:' ▾';color:var(--muted)}
+.rv{border-top:1px dashed var(--line);padding:12px 0;font-size:.92rem}
+.rv .q{font-weight:800;margin-bottom:4px}
+.rv .a{margin:2px 0}
+.rv .a.ok{color:var(--ok)}
+.rv .a.bad{color:var(--bad)}
+.rv .ex{color:var(--muted);margin-top:4px}
+.saved-note{text-align:center;font-size:.85rem;color:var(--muted);margin-top:10px}
+
+/* RECORDS */
+.rec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.rec-head h2{font-size:1.6rem}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters input,.filters select{padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font:inherit;font-weight:600;flex:1;min-width:140px}
+.table-wrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--sand);font-weight:800;font-size:.82rem;cursor:pointer;user-select:none}
+tr:last-child td{border-bottom:0}
+td.score{font-weight:800}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.rec-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.rec-actions .btn{flex:1;min-width:140px;font-size:.95rem;padding:12px 16px}
+.note{font-size:.82rem;color:var(--muted);margin-top:10px;line-height:1.45}
+
+.footer{text-align:center;color:rgba(255,255,255,.55);font-size:.78rem;margin-top:24px;position:relative;z-index:1}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:#1c2b22;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:50;transition:transform .3s ease;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Confetti */
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+@media (max-width:520px){
+  .card{padding:18px}
+  .qtext{font-size:1.06rem}
+  .opt{font-size:.95rem;padding:12px}
+  .sb .n{flex-basis:132px;font-size:.82rem}
+  .sb{gap:8px}
+  .summary b{font-size:1.2rem}
+  .stage-dots span{font-size:.66rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<div class="decor" aria-hidden="true">
+  <span style="left:6%;top:12%">🌿</span>
+  <span style="left:86%;top:18%;animation-delay:-3s">🦒</span>
+  <span style="left:12%;top:72%;animation-delay:-6s">🌵</span>
+  <span style="left:78%;top:68%;animation-delay:-2s">🌲</span>
+  <span style="left:48%;top:88%;animation-delay:-8s">🐻‍❄️</span>
+  <span style="left:44%;top:6%;animation-delay:-5s">🦜</span>
+</div>
+
+<div class="wrap">
+
+  <!-- ===== HOME ===== -->
+  <section class="screen home active" id="s-home">
+    <span class="tag">Geografi Tingkatan 3 KSSM · Bab 8</span>
+    <div class="globe" aria-hidden="true">
+      <svg viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="ocean" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#7fd3f0"/><stop offset="1" stop-color="#1f7fae"/>
+          </radialGradient>
+          <clipPath id="clip"><circle cx="100" cy="100" r="86"/></clipPath>
+        </defs>
+        <circle cx="100" cy="100" r="86" fill="url(#ocean)"/>
+        <g clip-path="url(#clip)">
+          <g class="spin">
+            <path d="M40 60c14-10 32-8 40 4 6 10-2 20 6 28 8 8 2 22-10 24-14 2-18-10-28-12-12-2-22-10-18-24 2-8 4-14 10-20z" fill="#3fae62"/>
+            <path d="M110 40c18-4 38 2 46 16 6 10-4 18 2 28 6 12-6 22-18 18-10-4-14 6-24 2-10-4-6-16-14-22-10-8-6-38 8-42z" fill="#5bbf6f"/>
+            <path d="M118 120c12-4 26 2 30 14 4 12-6 26-18 28-12 2-20-8-22-18-2-10 0-20 10-24z" fill="#d9b860"/>
+            <path d="M50 140c10-2 20 4 22 14 2 10-6 18-16 18s-16-8-16-16 2-14 10-16z" fill="#2f8f50"/>
+          </g>
+        </g>
+        <ellipse cx="70" cy="62" rx="26" ry="14" fill="#fff" opacity=".18" transform="rotate(-30 70 62)"/>
+        <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      </svg>
+    </div>
+    <h1>GLOBAL <b>BIOME</b> QUEST</h1>
+    <p class="sub">Jelajah dunia, kenali tumbuh-tumbuhan semula jadi dan hidupan liar. Selesaikan 4 peringkat misi dan buktikan kamu penjelajah terhebat!</p>
+    <div class="stage-strip">
+      <div>🌳 Ekspedisi Flora</div><div>🗺️ Peta Iklim</div><div>🐾 Jejak Fauna</div><div>🧭 Cabaran KBAT</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary btn-block" id="btn-start">🚀 MULA MISI</button>
+      <button class="btn btn-ghost btn-block" id="btn-records">📋 Rekod Penjelajah</button>
+    </div>
+  </section>
+
+  <!-- ===== REGISTER ===== -->
+  <section class="screen center" id="s-register">
+    <div class="card">
+      <div class="form-title"><span class="ico">🎒</span><h2>Daftar Penjelajah</h2></div>
+      <p class="hint">Isi maklumat kamu sebelum memulakan ekspedisi.</p>
+      <form id="reg-form" novalidate>
+        <div class="field">
+          <label for="in-name">Nama Murid</label>
+          <input id="in-name" type="text" maxlength="60" autocomplete="name" placeholder="cth: Nur Aisyah binti Ahmad">
+        </div>
+        <div class="field">
+          <label for="in-class">Kelas</label>
+          <input id="in-class" type="text" maxlength="30" placeholder="cth: 3 Bestari" list="class-list">
+          <datalist id="class-list"></datalist>
+        </div>
+        <div class="err" id="reg-err" role="alert"></div>
+        <div class="row">
+          <button type="button" class="btn btn-outline" id="btn-reg-back">← Kembali</button>
+          <button type="submit" class="btn btn-green">Teruskan →</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== STAGE INTRO ===== -->
+  <section class="screen center" id="s-stage">
+    <div class="card stage-intro">
+      <div class="big" id="st-icon">🌳</div>
+      <div class="lvl" id="st-lvl">Peringkat 1 / 4</div>
+      <h2 id="st-name">Ekspedisi Flora</h2>
+      <p id="st-desc"></p>
+      <div class="meta" id="st-meta"></div>
+      <button class="btn btn-primary btn-block" id="btn-stage-go">Mula Peringkat →</button>
+    </div>
+  </section>
+
+  <!-- ===== QUIZ ===== -->
+  <section class="screen" id="s-quiz">
+    <div class="hud">
+      <div class="who" id="hud-who">👤</div>
+      <div class="stats">
+        <div class="pill">⏱️ <span id="hud-time">00:00</span></div>
+        <div class="pill">⭐ <span id="hud-score">0</span></div>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="lbl"><span id="pg-label">Soalan 1 / 10</span><span id="pg-pct">0%</span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="pg-bar"><i id="pg-fill"></i></div>
+      <div class="stage-dots" id="stage-dots"></div>
+    </div>
+    <div class="card qcard">
+      <div class="qhead">
+        <span class="qnum" id="q-stage">🌳 Ekspedisi Flora</span>
+        <span class="aras R" id="q-aras">Aras Rendah</span>
+      </div>
+      <div class="qtext" id="q-text"></div>
+      <div class="opts" id="q-opts"></div>
+      <div class="feedback" id="q-fb" aria-live="polite">
+        <h4 id="fb-title"></h4>
+        <p id="fb-text"></p>
+      </div>
+      <div class="next-row" id="q-next-row">
+        <button class="btn btn-green btn-block" id="btn-next">Seterusnya →</button>
+      </div>
+    </div>
+    <p class="kbd-hint">Tip: tekan 1–4 untuk pilih jawapan, Enter untuk teruskan.</p>
+  </section>
+
+  <!-- ===== RESULT ===== -->
+  <section class="screen" id="s-result">
+    <div class="result-top">
+      <div class="medal" id="r-medal">🏆</div>
+      <h2 id="r-title">Misi Selesai!</h2>
+      <p id="r-sub"></p>
+    </div>
+    <div class="card">
+      <div class="score-ring">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#eee6cf" stroke-width="12"/>
+          <circle id="r-ring" cx="60" cy="60" r="52" fill="none" stroke="#2f9e5b" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" style="transition:stroke-dashoffset 1.2s ease"/>
+        </svg>
+        <div class="val"><div><b id="r-score">0</b><small>/ 100 markah</small></div></div>
+      </div>
+      <div class="summary">
+        <div><b id="r-correct">0/10</b><span>Jawapan betul</span></div>
+        <div><b id="r-pct">0%</b><span>Peratus</span></div>
+        <div><b id="r-time">00:00</b><span>Masa</span></div>
+      </div>
+      <div class="section-h">Prestasi ikut peringkat</div>
+      <div class="stage-break" id="r-stages"></div>
+      <details class="review">
+        <summary>🔍 Semak semula jawapan</summary>
+        <div id="r-review"></div>
+      </details>
+      <div class="row">
+        <button class="btn btn-primary" id="btn-retry">🔄 Cuba Semula</button>
+        <button class="btn btn-outline" id="btn-home">🏠 Utama</button>
+      </div>
+      <button class="btn btn-outline btn-block" style="margin-top:10px" id="btn-r-records">📋 Lihat Rekod</button>
+      <p class="saved-note" id="r-saved"></p>
+    </div>
+  </section>
+
+  <!-- ===== RECORDS ===== -->
+  <section class="screen" id="s-records">
+    <div class="card">
+      <div class="rec-head">
+        <h2>📋 Rekod Penjelajah</h2>
+        <button class="btn btn-outline" id="btn-rec-back" style="min-height:42px;padding:8px 14px;font-size:.95rem">← Kembali</button>
+      </div>
+      <div class="filters">
+        <input type="search" id="f-search" placeholder="Cari nama…">
+        <select id="f-class"><option value="">Semua kelas</option></select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="date">Tarikh</th>
+              <th data-sort="name">Nama</th>
+              <th data-sort="cls">Kelas</th>
+              <th data-sort="score">Markah</th>
+              <th data-sort="duration">Masa</th>
+            </tr>
+          </thead>
+          <tbody id="rec-body"></tbody>
+        </table>
+      </div>
+      <div class="rec-actions">
+        <button class="btn btn-green" id="btn-export">⬇️ Muat turun CSV</button>
+        <button class="btn btn-danger" id="btn-clear">🗑️ Padam semua</button>
+      </div>
+      <p class="note">Rekod disimpan dalam browser peranti ini sahaja (localStorage). Rekod murid yang bermain di telefon sendiri tidak akan muncul di peranti guru. Klik tajuk lajur untuk susun.</p>
+    </div>
+  </section>
+
+  <div class="footer">Global Biome Quest · Geografi Tingkatan 3 KSSM · Bab 8: Tumbuh-tumbuhan Semula Jadi dan Hidupan Liar di Dunia</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= KONFIGURASI ================= */
+// Jumlah soalan yang dicabut secara rawak dari setiap peringkat (jumlah = 10).
+const STAGES = [
+  { id:1, icon:'🌳', name:'Ekspedisi Flora',  focus:'Jenis & ciri-ciri tumbuh-tumbuhan semula jadi', pick:3,
+    desc:'Kenal pasti jenis tumbuh-tumbuhan semula jadi di dunia dan ciri-cirinya.' },
+  { id:2, icon:'🗺️', name:'Peta Iklim',       focus:'Taburan & hubungan iklim dengan tumbuh-tumbuhan', pick:3,
+    desc:'Di manakah setiap jenis tumbuhan ditemui, dan bagaimana iklim membentuknya?' },
+  { id:3, icon:'🐾', name:'Jejak Fauna',      focus:'Hidupan liar, habitat & adaptasi', pick:2,
+    desc:'Jejaki hidupan liar dunia, habitat mereka dan cara mereka beradaptasi.' },
+  { id:4, icon:'🧭', name:'Cabaran KBAT',     focus:'Aplikasi, analisis & penilaian', pick:2,
+    desc:'Cabaran terakhir! Fikir secara kritis untuk menyelesaikan situasi sebenar.' }
+];
+const ARAS = { R:'Aras Rendah', S:'Aras Sederhana', K:'KBAT' };
+const STORE_KEY = 'gbq_records_v1';
+
+/* ================= BANK SOALAN =================
+   a = indeks jawapan betul (0-3) dalam senarai o sebelum dikocok.
+   e = penerangan selepas menjawab. */
+const BANK = {
+1: [
+  { l:'R', q:'Antara berikut, yang manakah BUKAN ciri hutan hujan tropika?',
+    o:['Malar hijau sepanjang tahun','Pokok tumbuh berlapis-lapis','Pokok berdaun tirus seperti jarum','Mempunyai pokok berakar banir'], a:2,
+    e:'Daun tirus seperti jarum ialah ciri hutan konifer. Hutan hujan tropika malar hijau, berlapis-lapis dan banyak pokok berakar banir.' },
+  { l:'R', q:'Pokok yang berdaun tirus seperti jarum dan menghasilkan kon tergolong dalam jenis hutan…',
+    o:['Hutan konifer','Hutan monsun tropika','Hutan Mediterranean','Hutan hujan tropika'], a:0,
+    e:'Hutan konifer (taiga) terdiri daripada pokok seperti pain, fir dan spruce yang berdaun jarum dan berkon.' },
+  { l:'R', q:'Tumbuh-tumbuhan utama di kawasan tundra ialah…',
+    o:['Pokok jati dan meranti','Lumut dan liken','Pokok zaitun dan anggur','Rumput tinggi dan pokok akasia'], a:1,
+    e:'Tundra sangat sejuk dengan musim tumbuh yang singkat, jadi hanya tumbuhan kecil seperti lumut, liken dan pokok renek kerdil dapat hidup.' },
+  { l:'R', q:'Pokok baobab dan akasia yang tumbuh terselerak di padang rumput tropika boleh ditemui di kawasan…',
+    o:['Tundra','Gurun panas','Savana','Hutan konifer'], a:2,
+    e:'Savana ialah padang rumput tropika yang diselangi pokok-pokok terselerak seperti baobab dan akasia.' },
+  { l:'R', q:'Antara berikut, yang manakah contoh tumbuhan semula jadi Mediterranean?',
+    o:['Pokok zaitun','Pokok kaktus','Pokok pain','Pokok cendana gurun'], a:0,
+    e:'Pokok zaitun, oak gabus dan anggur merupakan tumbuhan biasa di kawasan beriklim Mediterranean.' },
+  { l:'R', q:'Pokok jati ialah contoh pokok dalam…',
+    o:['Hutan hujan tropika','Hutan monsun tropika','Hutan konifer','Tundra'], a:1,
+    e:'Hutan monsun tropika mempunyai pokok seperti jati yang meluruhkan daun semasa musim kemarau.' },
+  { l:'R', q:'Tumbuhan yang mempunyai batang tebal untuk menyimpan air dan daun berbentuk duri biasanya tumbuh di…',
+    o:['Gurun panas','Hutan hujan tropika','Tundra','Padang rumput sederhana'], a:0,
+    e:'Kaktus ialah tumbuhan gurun panas. Batangnya menyimpan air dan duri mengurangkan kehilangan air melalui transpirasi.' },
+  { l:'R', q:'Padang rumput sederhana di Amerika Utara dikenali sebagai…',
+    o:['Pampas','Prairie','Steppe','Veld'], a:1,
+    e:'Prairie (Amerika Utara), Pampas (Argentina), Steppe (Eurasia), Veld (Afrika Selatan) dan Downs (Australia) ialah padang rumput sederhana.' }
+],
+2: [
+  { l:'S', q:'Kawasan manakah mempunyai taburan hutan hujan tropika yang luas?',
+    o:['Lembangan Amazon','Gurun Sahara','Siberia','Greenland'], a:0,
+    e:'Hutan hujan tropika tertabur di kawasan khatulistiwa seperti Lembangan Amazon, Lembangan Congo dan Asia Tenggara.' },
+  { l:'S', q:'Hutan konifer (taiga) tertabur luas di kawasan…',
+    o:['Brazil, Congo dan Indonesia','Kanada, Scandinavia dan Siberia','Mesir, Libya dan Arab Saudi','Kenya, Tanzania dan Uganda'], a:1,
+    e:'Hutan konifer membentuk jalur luas di latitud tinggi hemisfera utara: Kanada, Scandinavia dan Siberia (Rusia).' },
+  { l:'S', q:'Padang rumput sederhana di Argentina dikenali sebagai…',
+    o:['Downs','Llanos','Pampas','Prairie'], a:2,
+    e:'Pampas terletak di Argentina. Llanos pula ialah kawasan savana di Venezuela dan Colombia.' },
+  { l:'S', q:'Ciri iklim manakah yang mempengaruhi tumbuh-tumbuhan Mediterranean?',
+    o:['Panas dan lembap sepanjang tahun','Musim panas yang panas dan kering, musim sejuk yang sederhana dan lembap','Sangat sejuk dan bersalji hampir sepanjang tahun','Hujan sangat sedikit sepanjang tahun'], a:1,
+    e:'Iklim Mediterranean mempunyai musim panas yang panas dan kering serta hujan pada musim sejuk. Tumbuhannya beradaptasi untuk menghadapi musim panas yang kering.' },
+  { l:'S', q:'Hutan hujan tropika malar hijau sepanjang tahun kerana…',
+    o:['Suhu dan hujan yang tinggi sepanjang tahun','Suhu rendah dan musim sejuk yang panjang','Musim kemarau yang panjang','Tanih yang beku'], a:0,
+    e:'Kawasan khatulistiwa panas dan menerima hujan lebat sepanjang tahun, jadi tumbuhan dapat tumbuh tanpa henti dan kekal hijau.' },
+  { l:'S', q:'Mengapakah pokok tidak dapat tumbuh tinggi di kawasan tundra?',
+    o:['Hujan terlalu lebat','Suhu sangat rendah, musim tumbuh singkat dan tanih beku','Tanah terlalu subur','Terlalu banyak haiwan ragut'], a:1,
+    e:'Suhu tundra sangat rendah, musim tumbuh hanya beberapa bulan dan lapisan bawah tanih kekal beku (permafrost), jadi akar pokok besar tidak dapat berkembang.' },
+  { l:'S', q:'Rumput di kawasan savana menjadi kering dan kekuningan pada waktu tertentu kerana…',
+    o:['Musim sejuk yang bersalji','Musim kemarau yang panjang','Hujan sepanjang tahun','Ketinggian yang tinggi'], a:1,
+    e:'Savana mempunyai dua musim yang jelas: musim hujan (rumput hijau dan tinggi) dan musim kemarau (rumput kering kekuningan).' },
+  { l:'S', q:'Pokok di hutan monsun tropika meluruhkan daun semasa musim kemarau untuk…',
+    o:['Menarik serangga','Mengurangkan kehilangan air melalui transpirasi','Menyimpan lebih banyak cahaya','Mempercepatkan pertumbuhan buah'], a:1,
+    e:'Dengan meluruhkan daun, pokok mengurangkan transpirasi dan dapat menjimatkan air semasa musim kemarau.' }
+],
+3: [
+  { l:'S', q:'Apakah fungsi bonggol unta?',
+    o:['Menyimpan air','Menyimpan lemak sebagai sumber tenaga','Melindungi daripada pemangsa','Mengawal suhu kaki'], a:1,
+    e:'Bonggol unta menyimpan lemak, bukan air. Lemak ini digunakan sebagai sumber tenaga apabila makanan sukar diperoleh di gurun.' },
+  { l:'R', q:'Beruang kutub mempunyai lapisan lemak yang tebal di bawah kulit. Adaptasi ini membantunya untuk…',
+    o:['Berlari dengan lebih laju','Mengekalkan haba badan dalam suhu yang sangat sejuk','Memanjat pokok','Menyimpan air'], a:1,
+    e:'Lapisan lemak tebal dan bulu tebal bertindak sebagai penebat haba di kawasan Artik yang sangat sejuk.' },
+  { l:'R', q:'Zirafah, zebra dan singa ialah hidupan liar yang mendiami kawasan…',
+    o:['Tundra','Hutan konifer','Savana','Hutan Mediterranean'], a:2,
+    e:'Savana Afrika menjadi habitat haiwan herbivor seperti zirafah dan zebra serta pemangsa seperti singa.' },
+  { l:'R', q:'Habitat semula jadi orang utan ialah…',
+    o:['Hutan hujan tropika','Gurun panas','Tundra','Padang rumput sederhana'], a:0,
+    e:'Orang utan hidup di hutan hujan tropika Borneo dan Sumatera, dan bergantung pada pokok untuk makanan serta tempat tinggal.' },
+  { l:'R', q:'Rusa kutub (reindeer) biasanya ditemui di kawasan…',
+    o:['Savana','Tundra','Hutan hujan tropika','Gurun panas'], a:1,
+    e:'Rusa kutub hidup di tundra dan memakan lumut serta liken. Bulu tebal melindunginya daripada kesejukan.' },
+  { l:'S', q:'Musang fennec yang hidup di Gurun Sahara mempunyai telinga yang besar. Apakah fungsinya?',
+    o:['Membebaskan haba badan','Menyimpan air','Menakutkan pemangsa','Menyerap cahaya matahari'], a:0,
+    e:'Telinga besar membantu membebaskan haba badan di gurun yang panas, selain membantu mendengar mangsa.' },
+  { l:'S', q:'Bulu putih arnab Artik dan beruang kutub ialah adaptasi untuk…',
+    o:['Menyerap haba matahari','Penyamaran di persekitaran bersalji','Menarik pasangan','Menghalau serangga'], a:1,
+    e:'Bulu putih menyamarkan haiwan di persekitaran salji supaya sukar dilihat oleh pemangsa atau mangsa.' },
+  { l:'R', q:'Kanggaru ialah haiwan asli benua…',
+    o:['Afrika','Amerika Selatan','Australia','Asia'], a:2,
+    e:'Kanggaru ialah haiwan asli Australia dan banyak ditemui di kawasan padang rumput dan savana di sana.' }
+],
+4: [
+  { l:'K', q:'Seorang penjelajah melihat pokok berdaun jarum, tanah dilitupi salji dan musim sejuk yang panjang. Di kawasan manakah dia berada?',
+    o:['Hutan hujan tropika','Savana','Hutan konifer (taiga)','Gurun panas'], a:2,
+    e:'Gabungan pokok berdaun jarum, salji dan musim sejuk panjang menunjukkan hutan konifer di latitud tinggi.' },
+  { l:'K', q:'Mengapakah lantai hutan hujan tropika kurang ditumbuhi tumbuhan renek?',
+    o:['Tanih terlalu kering','Silara (kanopi) yang tebal menghalang cahaya matahari sampai ke lantai hutan','Suhu terlalu rendah','Haiwan memakan semua tumbuhan renek'], a:1,
+    e:'Lapisan silara yang rapat menyerap kebanyakan cahaya matahari, jadi lantai hutan menjadi gelap dan kurang tumbuhan renek.' },
+  { l:'K', q:'Jika suhu dunia terus meningkat dan ais laut di Artik semakin berkurang, apakah kesan paling ketara kepada beruang kutub?',
+    o:['Bulu beruang kutub menjadi lebih tebal','Beruang kutub sukar memburu anjing laut kerana habitat ais berkurang','Beruang kutub akan berpindah ke hutan hujan tropika','Bilangan beruang kutub akan bertambah'], a:1,
+    e:'Beruang kutub bergantung pada ais laut untuk memburu anjing laut. Ais yang berkurang mengancam sumber makanan dan kemandiriannya.' },
+  { l:'K', q:'Mengapakah pokok konifer berbentuk kon?',
+    o:['Supaya salji mudah jatuh dan dahan tidak patah','Untuk menarik lebih banyak hujan','Untuk menyimpan air dalam batang','Untuk mengelak haiwan memanjat'], a:0,
+    e:'Bentuk kon dan dahan yang condong ke bawah membolehkan salji tergelincir jatuh, jadi dahan tidak patah akibat berat salji.' },
+  { l:'K', q:'Sebuah kawasan hutan hujan tropika ditebang untuk membuka ladang. Apakah kesan paling serius kepada hidupan liar?',
+    o:['Hidupan liar mendapat lebih banyak makanan','Kehilangan habitat yang boleh membawa kepada kepupusan spesies','Suhu kawasan itu menjadi lebih sejuk','Bilangan spesies bertambah'], a:1,
+    e:'Hutan ialah habitat dan sumber makanan. Penebangan memusnahkan habitat dan meningkatkan risiko kepupusan spesies.' },
+  { l:'K', q:'Mengapakah hutan hujan tropika mempunyai kepelbagaian spesies tumbuhan dan haiwan yang paling tinggi?',
+    o:['Iklim panas dan lembap sepanjang tahun membolehkan tumbuhan tumbuh sepanjang tahun dan menyediakan pelbagai habitat','Kawasannya paling luas di dunia','Tiada manusia tinggal di situ','Tanihnya beku dan stabil'], a:0,
+    e:'Suhu tinggi dan hujan sepanjang tahun membolehkan pertumbuhan berterusan dan hutan berlapis-lapis, lalu menyediakan pelbagai habitat dan makanan.' },
+  { l:'K', q:'Susunan manakah yang BETUL bagi tumbuh-tumbuhan semula jadi dari khatulistiwa ke arah Kutub Utara?',
+    o:['Tundra → Hutan konifer → Savana → Hutan hujan tropika','Hutan hujan tropika → Savana → Hutan konifer → Tundra','Savana → Tundra → Hutan hujan tropika → Hutan konifer','Hutan konifer → Hutan hujan tropika → Tundra → Savana'], a:1,
+    e:'Semakin jauh dari khatulistiwa, suhu semakin rendah: hutan hujan tropika → savana → … → hutan konifer → tundra.' },
+  { l:'K', q:'Jenis tumbuh-tumbuhan di Gunung Kinabalu berubah dari kaki gunung ke puncak. Apakah faktor utama perubahan ini?',
+    o:['Suhu menurun apabila ketinggian bertambah','Hujan bertambah di puncak sahaja','Tanih di puncak lebih subur','Bilangan haiwan berkurang'], a:0,
+    e:'Suhu menurun apabila ketinggian bertambah, jadi jenis tumbuhan berubah daripada hutan tanah pamah kepada hutan pergunungan dan tumbuhan kerdil di puncak.' }
+]};
+
+/* ================= UTIL ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = arr => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const fmtTime = sec => { sec=Math.max(0,Math.round(sec)); const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); };
+const fmtDate = ts => { const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); };
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2400); }
+
+function loadRecords(){ try{ const r=JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); return Array.isArray(r)?r:[]; }catch(e){ return []; } }
+function saveRecords(r){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(r)); return true; }catch(e){ return false; } }
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=$('#'+id); el.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ================= STATE ================= */
+let player = { name:'', cls:'' };
+let game = null;
+let timerId = null;
+
+function buildQuestions(){
+  const list=[];
+  STAGES.forEach(st=>{
+    shuffle(BANK[st.id]).slice(0,st.pick).forEach(q=>{
+      const order = shuffle([0,1,2,3]);
+      list.push({ stage:st.id, l:q.l, q:q.q, e:q.e,
+        o: order.map(i=>q.o[i]), a: order.indexOf(q.a) });
+    });
+  });
+  return list; // peringkat kekal berurutan; soalan & pilihan dalam setiap peringkat dirawak
+}
+
+function newGame(){
+  game = { qs:buildQuestions(), i:0, score:0, answers:[], start:null, elapsed:0, locked:false, stageShown:0 };
+}
+
+/* ================= TIMER ================= */
+function startTimer(){
+  stopTimer();
+  game.start = Date.now() - game.elapsed*1000;
+  timerId = setInterval(()=>{ game.elapsed=(Date.now()-game.start)/1000; $('#hud-time').textContent=fmtTime(game.elapsed); },250);
+}
+function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } if(game && game.start){ game.elapsed=(Date.now()-game.start)/1000; } }
+
+/* ================= FLOW ================= */
+$('#btn-start').onclick = ()=>{
+  const recs=loadRecords();
+  const classes=[...new Set(recs.map(r=>r.cls))].slice(-10);
+  $('#class-list').innerHTML = classes.map(c=>`<option value="${esc(c)}">`).join('');
+  $('#in-name').value = player.name; $('#in-class').value = player.cls;
+  $('#reg-err').textContent='';
+  show('s-register');
+  setTimeout(()=>$('#in-name').focus(),300);
+};
+$('#btn-reg-back').onclick = ()=>show('s-home');
+$('#reg-form').onsubmit = ev=>{
+  ev.preventDefault();
+  const name=$('#in-name').value.trim().replace(/\s+/g,' ');
+  const cls=$('#in-class').value.trim().replace(/\s+/g,' ');
+  if(name.length<2){ $('#reg-err').textContent='Sila masukkan nama penuh kamu.'; $('#in-name').focus(); return; }
+  if(!cls){ $('#reg-err').textContent='Sila masukkan kelas kamu.'; $('#in-class').focus(); return; }
+  player={name,cls};
+  newGame();
+  showStageIntro(1);
+};
+
+function showStageIntro(stageId){
+  const st=STAGES[stageId-1];
+  game.stageShown=stageId;
+  $('#st-icon').textContent=st.icon;
+  $('#st-icon').style.animation='none'; void $('#st-icon').offsetWidth; $('#st-icon').style.animation='';
+  $('#st-lvl').textContent=`Peringkat ${st.id} / ${STAGES.length}`;
+  $('#st-name').textContent=st.name;
+  $('#st-desc').textContent=st.desc;
+  const levels=[...new Set(game.qs.filter(q=>q.stage===stageId).map(q=>ARAS[q.l]))];
+  $('#st-meta').innerHTML=`<span class="chip">📚 ${esc(st.focus)}</span><span class="chip">❓ ${st.pick} soalan</span>`+levels.map(l=>`<span class="chip">${esc(l)}</span>`).join('');
+  $('#btn-stage-go').textContent = stageId===1 ? 'Mula Ekspedisi →' : 'Mula Peringkat →';
+  stopTimer();
+  show('s-stage');
+  setTimeout(()=>$('#btn-stage-go').focus(),300);
+}
+$('#btn-stage-go').onclick = ()=>{ show('s-quiz'); renderQuestion(); startTimer(); };
+
+function renderDots(){
+  const cur=game.qs[game.i]?.stage||STAGES.length+1;
+  $('#stage-dots').innerHTML=STAGES.map(s=>`<span class="${s.id<cur?'done':s.id===cur?'on':''}">${s.icon} ${esc(s.name)}</span>`).join('');
+}
+function updateProgress(answeredCount){
+  const total=game.qs.length;
+  const pct=Math.round(answeredCount/total*100);
+  $('#pg-fill').style.width=pct+'%';
+  $('#pg-pct').textContent=pct+'%';
+  $('#pg-bar').setAttribute('aria-valuenow',pct);
+}
+
+function renderQuestion(){
+  const q=game.qs[game.i], st=STAGES[q.stage-1];
+  game.locked=false;
+  $('#hud-who').textContent=`👤 ${player.name} · ${player.cls}`;
+  $('#hud-score').textContent=game.score;
+  $('#pg-label').textContent=`Soalan ${game.i+1} / ${game.qs.length}`;
+  updateProgress(game.i);
+  renderDots();
+  $('#q-stage').textContent=`${st.icon} ${st.name}`;
+  const ar=$('#q-aras'); ar.className='aras '+q.l; ar.textContent=ARAS[q.l];
+  $('#q-text').textContent=q.q;
+  const letters=['A','B','C','D'];
+  $('#q-opts').innerHTML=q.o.map((t,i)=>`<button class="opt" data-i="${i}"><span class="k">${letters[i]}</span><span>${esc(t)}</span></button>`).join('');
+  $('#q-opts').querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.i));
+  $('#q-fb').className='feedback';
+  $('#q-next-row').classList.remove('show');
+  const card=document.querySelector('.qcard'); card.style.animation='none'; void card.offsetWidth; card.style.animation='enter .35s ease both';
+}
+
+const PRAISE=['Tepat sekali!','Hebat!','Betul!','Syabas, penjelajah!','Mantap!'];
+function answer(choice){
+  if(game.locked) return;
+  game.locked=true;
+  const q=game.qs[game.i], ok=choice===q.a;
+  if(ok) game.score+=10;
+  game.answers.push({stage:q.stage, q:q.q, chosen:q.o[choice], correct:q.o[q.a], ok, e:q.e, l:q.l});
+  const btns=$('#q-opts').querySelectorAll('.opt');
+  btns.forEach((b,i)=>{ b.disabled=true; if(i===q.a) b.classList.add('correct'); else if(i===choice) b.classList.add('wrong'); else b.classList.add('dim'); });
+  const fb=$('#q-fb');
+  fb.className='feedback show '+(ok?'ok':'bad');
+  $('#fb-title').textContent= ok ? '✅ '+PRAISE[Math.floor(Math.random()*PRAISE.length)]+' +10 markah' : '❌ Kurang tepat';
+  $('#fb-text').innerHTML=(ok?'':`Jawapan betul: <b>${esc(q.o[q.a])}</b>. `)+esc(q.e);
+  $('#hud-score').textContent=game.score;
+  updateProgress(game.i+1);
+  const last=game.i===game.qs.length-1;
+  const nextStage=!last && game.qs[game.i+1].stage!==q.stage;
+  $('#btn-next').textContent= last ? '🏁 Lihat Keputusan' : nextStage ? '🔓 Peringkat Seterusnya →' : 'Seterusnya →';
+  $('#q-next-row').classList.add('show');
+  setTimeout(()=>{ $('#btn-next').focus({preventScroll:true}); $('#q-next-row').scrollIntoView({behavior:'smooth',block:'nearest'}); },120);
+}
+
+$('#btn-next').onclick = ()=>{
+  if(!game || !game.locked) return;
+  const prevStage=game.qs[game.i].stage;
+  game.i++;
+  if(game.i>=game.qs.length){ finish(); return; }
+  if(game.qs[game.i].stage!==prevStage){ showStageIntro(game.qs[game.i].stage); return; }
+  renderQuestion();
+};
+
+document.addEventListener('keydown',e=>{
+  if(!$('#s-quiz').classList.contains('active')) return;
+  if(e.target.tagName==='INPUT') return;
+  if(!game.locked && ['1','2','3','4'].includes(e.key)){ answer(+e.key-1); e.preventDefault(); }
+  else if(game.locked && e.key==='Enter' && document.activeElement!==$('#btn-next')){ $('#btn-next').click(); e.preventDefault(); }
+});
+
+/* ================= RESULT ================= */
+function rank(pct){
+  if(pct>=90) return {m:'🏆', t:'Penjelajah Legenda!', s:'Pengetahuan biom dunia kamu sangat mantap.'};
+  if(pct>=70) return {m:'🥇', t:'Penjelajah Mahir!', s:'Bagus! Sedikit lagi untuk jadi legenda.'};
+  if(pct>=50) return {m:'🥈', t:'Penjelajah Muda', s:'Asas sudah ada. Semak semula jawapan yang salah.'};
+  return {m:'🌱', t:'Teruskan Berlatih', s:'Ulang kaji Bab 8 dan cuba lagi. Kamu boleh!'};
+}
+
+function finish(){
+  stopTimer();
+  const total=game.qs.length, correct=game.answers.filter(a=>a.ok).length;
+  const pct=Math.round(correct/total*100), dur=Math.round(game.elapsed);
+  const rk=rank(pct);
+  $('#r-medal').textContent=rk.m; $('#r-title').textContent=rk.t;
+  $('#r-sub').textContent=`${player.name} (${player.cls}) — ${rk.s}`;
+  $('#r-score').textContent=game.score;
+  $('#r-correct').textContent=`${correct}/${total}`;
+  $('#r-pct').textContent=pct+'%';
+  $('#r-time').textContent=fmtTime(dur);
+  const ring=$('#r-ring'); ring.style.strokeDashoffset=326.7;
+  ring.setAttribute('stroke', pct>=70?'#2f9e5b':pct>=50?'#f5b83d':'#d9483b');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ ring.style.strokeDashoffset=326.7*(1-pct/100); }));
+
+  $('#r-stages').innerHTML=STAGES.map(s=>{
+    const a=game.answers.filter(x=>x.stage===s.id), c=a.filter(x=>x.ok).length;
+    const w=a.length?Math.round(c/a.length*100):0;
+    return `<div class="sb"><span class="n">${s.icon} ${esc(s.name)}</span><span class="t"><i style="width:0" data-w="${w}"></i></span><span class="s">${c}/${a.length}</span></div>`;
+  }).join('');
+  setTimeout(()=>document.querySelectorAll('#r-stages i').forEach(i=>i.style.width=i.dataset.w+'%'),150);
+
+  $('#r-review').innerHTML=game.answers.map((a,i)=>`
+    <div class="rv">
+      <div class="q">${i+1}. ${esc(a.q)} <span class="aras ${a.l}">${ARAS[a.l]}</span></div>
+      <div class="a ${a.ok?'ok':'bad'}">${a.ok?'✅':'❌'} Jawapan kamu: ${esc(a.chosen)}</div>
+      ${a.ok?'':`<div class="a ok">✔️ Jawapan betul: ${esc(a.correct)}</div>`}
+      <div class="ex">💡 ${esc(a.e)}</div>
+    </div>`).join('');
+  document.querySelector('details.review').open=false;
+
+  const recs=loadRecords();
+  recs.push({ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), name:player.name, cls:player.cls,
+    score:game.score, correct, total, pct, duration:dur, date:Date.now(),
+    stages:STAGES.map(s=>game.answers.filter(x=>x.stage===s.id&&x.ok).length) });
+  const ok=saveRecords(recs);
+  $('#r-saved').textContent= ok ? '💾 Rekod disimpan dalam peranti ini.' : '⚠️ Rekod tidak dapat disimpan (storan browser disekat).';
+
+  show('s-result');
+  if(pct>=70) confetti();
+}
+
+function confetti(){
+  const box=document.createElement('div'); box.className='confetti';
+  const colors=['#f5b83d','#2f9e5b','#4fb3d9','#ff7a59','#ffffff'];
+  for(let i=0;i<70;i++){
+    const c=document.createElement('i');
+    c.style.left=Math.random()*100+'%';
+    c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(2+Math.random()*2.5)+'s';
+    c.style.animationDelay=(Math.random()*.8)+'s';
+    c.style.transform=`rotate(${Math.random()*360}deg)`;
+    box.appendChild(c);
+  }
+  document.body.appendChild(box);
+  setTimeout(()=>box.remove(),5500);
+}
+
+$('#btn-retry').onclick = ()=>{ newGame(); showStageIntro(1); };
+$('#btn-home').onclick = ()=>show('s-home');
+
+/* ================= RECORDS ================= */
+let sortKey='date', sortDir=-1, recBackTo='s-home';
+function openRecords(from){
+  recBackTo=from;
+  const recs=loadRecords();
+  const classes=[...new Set(recs.map(r=>r.cls))].sort((a,b)=>a.localeCompare(b,'ms'));
+  const sel=$('#f-class'), cur=sel.value;
+  sel.innerHTML='<option value="">Semua kelas</option>'+classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if(classes.includes(cur)) sel.value=cur;
+  renderRecords();
+  show('s-records');
+}
+function filteredRecords(){
+  const q=$('#f-search').value.trim().toLowerCase(), c=$('#f-class').value;
+  return loadRecords()
+    .filter(r=>(!c||r.cls===c)&&(!q||r.name.toLowerCase().includes(q)))
+    .sort((a,b)=>{
+      const x=a[sortKey], y=b[sortKey];
+      if(typeof x==='string') return x.localeCompare(y,'ms')*sortDir;
+      return (x-y)*sortDir || (a.duration-b.duration);
+    });
+}
+function renderRecords(){
+  const rows=filteredRecords();
+  document.querySelectorAll('th[data-sort]').forEach(th=>{
+    const base=th.textContent.replace(/ [▲▼]$/,'');
+    th.textContent=base+(th.dataset.sort===sortKey?(sortDir>0?' ▲':' ▼'):'');
+  });
+  $('#rec-body').innerHTML = rows.length ? rows.map(r=>`
+    <tr><td>${fmtDate(r.date)}</td><td>${esc(r.name)}</td><td>${esc(r.cls)}</td>
+    <td class="score">${r.score} <small style="color:var(--muted)">(${r.correct}/${r.total})</small></td><td>${fmtTime(r.duration)}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="empty">Belum ada rekod. Mulakan misi untuk mencipta rekod pertama!</td></tr>`;
+}
+document.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.sort;
+  if(sortKey===k) sortDir*=-1; else { sortKey=k; sortDir=(k==='name'||k==='cls')?1:-1; }
+  renderRecords();
+});
+$('#f-search').oninput=renderRecords;
+$('#f-class').onchange=renderRecords;
+$('#btn-records').onclick=()=>openRecords('s-home');
+$('#btn-r-records').onclick=()=>openRecords('s-result');
+$('#btn-rec-back').onclick=()=>show(recBackTo);
+
+$('#btn-export').onclick=()=>{
+  const rows=filteredRecords();
+  if(!rows.length){ toast('Tiada rekod untuk dimuat turun.'); return; }
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const head=['Tarikh','Nama','Kelas','Markah','Betul','Jumlah Soalan','Peratus','Masa (mm:ss)','Masa (saat)',...STAGES.map(s=>'P'+s.id+' '+s.name)];
+  const lines=[head.map(q).join(',')].concat(rows.map(r=>[fmtDate(r.date),r.name,r.cls,r.score,r.correct,r.total,r.pct+'%',fmtTime(r.duration),r.duration,...(r.stages||[])].map(q).join(',')));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  a.download=`rekod-global-biome-quest-${p(d.getDate())}${p(d.getMonth()+1)}${d.getFullYear()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('Fail CSV dimuat turun.');
+};
+$('#btn-clear').onclick=()=>{
+  if(!loadRecords().length){ toast('Tiada rekod untuk dipadam.'); return; }
+  if(confirm('Padam SEMUA rekod dalam peranti ini? Tindakan ini tidak boleh dibatalkan.')){
+    saveRecords([]); openRecords(recBackTo); toast('Semua rekod telah dipadam.');
+  }
+};
+
+})();
+</script>
+</body>
+</html>
