@@ -411,9 +411,10 @@ td.score{font-weight:800}
       </div>
       <div class="rec-actions">
         <button class="btn btn-green" id="btn-export">⬇️ Muat turun CSV</button>
+        <button class="btn btn-outline" id="btn-sync" style="display:none">☁️ Hantar semula</button>
         <button class="btn btn-danger" id="btn-clear">🗑️ Padam semua</button>
       </div>
-      <p class="note">Rekod disimpan dalam browser peranti ini sahaja (localStorage). Rekod murid yang bermain di telefon sendiri tidak akan muncul di peranti guru. Klik tajuk lajur untuk susun.</p>
+      <p class="note" id="rec-note">Rekod disimpan dalam browser peranti ini sahaja (localStorage). Rekod murid yang bermain di telefon sendiri tidak akan muncul di peranti guru. Klik tajuk lajur untuk susun.</p>
     </div>
   </section>
 
@@ -440,6 +441,13 @@ const STAGES = [
 ];
 const ARAS = { R:'Aras Rendah', S:'Aras Sederhana', K:'KBAT' };
 const STORE_KEY = 'gbq_records_v1';
+
+/* ===== GOOGLE SHEETS (pilihan) =====
+   Tampal URL Web App Apps Script di sini (berakhir dengan /exec).
+   Biarkan kosong '' jika mahu simpan dalam peranti sahaja.
+   Panduan: lihat apps-script/PANDUAN.md */
+const SHEETS_URL = '';
+const SHEETS_ON = /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(SHEETS_URL);
 
 /* ================= BANK SOALAN =================
    a = indeks jawapan betul (0-3) dalam senarai o sebelum dikocok.
@@ -746,9 +754,24 @@ function finish(){
   const recs=loadRecords();
   recs.push({ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), name:player.name, cls:player.cls,
     score:game.score, correct, total, pct, duration:dur, date:Date.now(),
-    stages:STAGES.map(s=>game.answers.filter(x=>x.stage===s.id&&x.ok).length) });
+    stages:STAGES.map(s=>game.answers.filter(x=>x.stage===s.id&&x.ok).length),
+    ...(SHEETS_ON?{synced:false}:{}) });
   const ok=saveRecords(recs);
-  $('#r-saved').textContent= ok ? '💾 Rekod disimpan dalam peranti ini.' : '⚠️ Rekod tidak dapat disimpan (storan browser disekat).';
+  const lastId=recs[recs.length-1].id;
+  if(!ok){
+    $('#r-saved').textContent='⚠️ Rekod tidak dapat disimpan dalam peranti (storan browser disekat).';
+    if(SHEETS_ON) sendOne(recs[recs.length-1]).then(()=>$('#r-saved').textContent='☁️ Rekod dihantar kepada guru (Google Sheets).').catch(()=>{});
+  } else if(SHEETS_ON){
+    $('#r-saved').textContent='☁️ Menghantar rekod kepada guru…';
+    syncPending().then(()=>{
+      const r=loadRecords().find(x=>x.id===lastId);
+      $('#r-saved').textContent = r && r.synced
+        ? '✅ Rekod disimpan dan dihantar kepada guru (Google Sheets).'
+        : '⏳ Rekod disimpan dalam peranti. Akan dihantar kepada guru bila ada internet.';
+    });
+  } else {
+    $('#r-saved').textContent='💾 Rekod disimpan dalam peranti ini.';
+  }
 
   show('s-result');
   if(pct>=70) confetti();
@@ -801,10 +824,51 @@ function renderRecords(){
     const base=th.textContent.replace(/ [▲▼]$/,'');
     th.textContent=base+(th.dataset.sort===sortKey?(sortDir>0?' ▲':' ▼'):'');
   });
+  const syncCell = r => !SHEETS_ON ? '' : `<td title="${r.synced?'Sudah dihantar ke Google Sheets':'Belum dihantar'}">${r.synced?'✅':'⏳'}</td>`;
   $('#rec-body').innerHTML = rows.length ? rows.map(r=>`
     <tr><td>${fmtDate(r.date)}</td><td>${esc(r.name)}</td><td>${esc(r.cls)}</td>
-    <td class="score">${r.score} <small style="color:var(--muted)">(${r.correct}/${r.total})</small></td><td>${fmtTime(r.duration)}</td></tr>`).join('')
-    : `<tr><td colspan="5" class="empty">Belum ada rekod. Mulakan misi untuk mencipta rekod pertama!</td></tr>`;
+    <td class="score">${r.score} <small style="color:var(--muted)">(${r.correct}/${r.total})</small></td><td>${fmtTime(r.duration)}</td>${syncCell(r)}</tr>`).join('')
+    : `<tr><td colspan="${SHEETS_ON?6:5}" class="empty">Belum ada rekod. Mulakan misi untuk mencipta rekod pertama!</td></tr>`;
+  if(SHEETS_ON){
+    const pending=loadRecords().filter(r=>r.synced===false).length;
+    const b=$('#btn-sync');
+    b.textContent = pending ? `☁️ Hantar ${pending} rekod tertangguh` : '☁️ Semua rekod sudah dihantar';
+    b.disabled = !pending || syncing;
+  }
+}
+
+/* ================= GOOGLE SHEETS SYNC ================= */
+let syncing=false;
+async function sendOne(r){
+  const ctrl=new AbortController(), t=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    // text/plain = "simple request", tiada CORS preflight. Server buang duplicate ikut id.
+    const res=await fetch(SHEETS_URL,{method:'POST',body:JSON.stringify({
+      id:r.id, date:r.date, name:r.name, cls:r.cls, score:r.score, correct:r.correct,
+      total:r.total, pct:r.pct, duration:r.duration, stages:r.stages||[]
+    }),headers:{'Content-Type':'text/plain;charset=utf-8'},redirect:'follow',signal:ctrl.signal});
+    const j=await res.json();
+    if(!j.ok) throw new Error(j.error||'Ditolak oleh server');
+    return j;
+  } finally { clearTimeout(t); }
+}
+async function syncPending(){
+  if(!SHEETS_ON || syncing || !navigator.onLine) return;
+  syncing=true;
+  try{
+    for(const r of loadRecords().filter(x=>x.synced===false)){
+      try{ await sendOne(r); }catch(e){ console.warn('Sync gagal:',e); break; }
+      const all=loadRecords(), k=all.findIndex(x=>x.id===r.id);
+      if(k>=0){ all[k].synced=true; saveRecords(all); }
+    }
+  } finally {
+    syncing=false;
+    if($('#s-records').classList.contains('active')) renderRecords();
+  }
+}
+if(SHEETS_ON){
+  window.addEventListener('online',syncPending);
+  setTimeout(syncPending,1500);
 }
 document.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
   const k=th.dataset.sort;
@@ -817,10 +881,20 @@ $('#btn-records').onclick=()=>openRecords('s-home');
 $('#btn-r-records').onclick=()=>openRecords('s-result');
 $('#btn-rec-back').onclick=()=>show(recBackTo);
 
+if(SHEETS_ON){
+  const b=$('#btn-sync'); b.style.display='';
+  b.onclick=async()=>{ if(!navigator.onLine){ toast('Tiada sambungan internet.'); return; }
+    b.disabled=true; b.textContent='☁️ Menghantar…'; await syncPending(); renderRecords();
+    const left=loadRecords().filter(r=>r.synced===false).length;
+    toast(left?`${left} rekod masih belum dihantar. Cuba lagi sebentar.`:'Semua rekod sudah dihantar ke Google Sheets.'); };
+  const th=document.createElement('th'); th.textContent='Sheets'; document.querySelector('thead tr').appendChild(th);
+  $('#rec-note').textContent='Rekod disimpan dalam peranti ini dan dihantar secara automatik ke Google Sheets guru. ✅ = sudah dihantar, ⏳ = menunggu internet. Klik tajuk lajur untuk susun.';
+}
 $('#btn-export').onclick=()=>{
   const rows=filteredRecords();
   if(!rows.length){ toast('Tiada rekod untuk dimuat turun.'); return; }
-  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  // elak formula injection di Excel/Sheets (nama bermula dengan = + - @)
+  const q=v=>{ let s=String(v); if(/^[=+\-@\t\r]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"'; };
   const head=['Tarikh','Nama','Kelas','Markah','Betul','Jumlah Soalan','Peratus','Masa (mm:ss)','Masa (saat)',...STAGES.map(s=>'P'+s.id+' '+s.name)];
   const lines=[head.map(q).join(',')].concat(rows.map(r=>[fmtDate(r.date),r.name,r.cls,r.score,r.correct,r.total,r.pct+'%',fmtTime(r.duration),r.duration,...(r.stages||[])].map(q).join(',')));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
@@ -833,7 +907,9 @@ $('#btn-export').onclick=()=>{
 };
 $('#btn-clear').onclick=()=>{
   if(!loadRecords().length){ toast('Tiada rekod untuk dipadam.'); return; }
-  if(confirm('Padam SEMUA rekod dalam peranti ini? Tindakan ini tidak boleh dibatalkan.')){
+  const pending=loadRecords().filter(r=>r.synced===false).length;
+  const warn=pending?`\n\nAMARAN: ${pending} rekod belum dihantar ke Google Sheets dan akan hilang.`:'';
+  if(confirm('Padam SEMUA rekod dalam peranti ini? Tindakan ini tidak boleh dibatalkan.'+warn)){
     saveRecords([]); openRecords(recBackTo); toast('Semua rekod telah dipadam.');
   }
 };
